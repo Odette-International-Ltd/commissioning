@@ -2,30 +2,40 @@ openapi: 3.0.3
 info:
   title: API for Commissioning Events
   description: |
-    openAPI configuration file for Commissioning processes in the automotive industry.
+    openAPI configuration file for the use of standardised REST API in commissioning processes of the automotive industry.
     ---
     This is the technical deliverable according to Odette OA03.   
     It provides a framework for interoperable implementations throughout the automotive industry and its partners in the supply chain and IT area.
-    For further details, please refer to the above mentioned documents.
+    For further details, please refer to the above mentioned document.
 
     The information objects defined here provide harmonised data structures. 
     They do not, however, provide specific information on mandatory content depending on object type and process context.
     For this information, API service providers should add additional information on validation rules applied to the objects used in the supported operations.   
-    This validation can be done in several ways, of course. However, a very simple and straightforward way would be to use semantic validation through schematron techniques on the data received. The output of this validation process can be used as error description in the response, should the validation fail.
+    This validation can be done in several ways, of course.  The output of this validation process can be used as error description in the response, should the validation fail.
 
     A compliant implementation must support:    
+    GET /logisticsPackagings  
+    POST /logisticsPackagings/{id}  
+    PUT /logisticsPackagings/{id}  
+    GET /logisticsPackagings/{id}  
 
-
+    It may support in addition:
+    POST /logisticsPackagings  
+    PATCH GET /logisticsPackagings/{id}  
+    POST /logisticsLabel/{id}  
+    GET /logisticsLabel/{id}  
        
     Service providers may, of course, also implement operations still marked as not-implemented (except DELETE operations), as this specification is intended to support a MVP for the moment.
   contact:
     name: ODETTE International Ltd.
+    url: 'https://www.odette.org'
     email: 'info@odette.org'
   license:
     name: The specification is published under the General Public License (GPL 3.0)
+    url: 'https://www.gnu.org/licenses/gpl-3.0.en.html'
   version: 0.1.0
 servers:
-  - url: 'https://api.sample.com/odette/scm-commissioning/V1'
+  - url: 'https://api.example.com/odette/scm-commissioning/V1'
 paths:
   /:
     summary: 'Provides information about the API-Version'
@@ -35,8 +45,6 @@ paths:
       description: Gets the API info object.
       operationId: getAPIInfo
       responses:
-        500:
-          description: Internal Server Error
         200:
           description: OK
           content:
@@ -46,19 +54,21 @@ paths:
               example:
                 APIName: ODETTE Supply Chain Commisioning OpenAPI 3.03 interface
                 APIVersion: 1.0.0
-                APIReleasedDate: '2023-05-31T17:00:00Z'
+                APIReleasedDate: '2023-01-31'
                 APIDocumentation: 'https://github.com/Odette-International-Ltd/commissioning-api'
                 APIStatus: DRAFT
+        500:
+          $ref: '#/components/responses/500_Internal_Server_Error'
   /logisticsPackagings:
     get:
       tags:
         - packaging
-      summary: 'optional - Retrieves a list of package IDs in the system'
+      summary: 'Optional - Retrieves a list of package IDs in the system'
       description: |
         Get list of packaging IDs
         ---
         Gets the list of logistics packaging IDs stored in the system.
-      operationId: getLogisticsPackaging
+      operationId: LogisticsPackagingGet
       parameters:
         - $ref: '#/components/parameters/start'
         - $ref: '#/components/parameters/limit'
@@ -76,7 +86,7 @@ paths:
         403:
           $ref: '#/components/responses/403_Forbidden'
         500:
-          $ref: '#/components/responses/500'
+          $ref: '#/components/responses/500_Internal_Server_Error'
     post:
       tags:
         - packaging
@@ -86,7 +96,7 @@ paths:
         ---
         Creates a new empty logistics packaging object at the system and returns the ID.   
         This operation shall be followed by a PUT command with the complete data set describing the packaging.
-      operationId: createLogisticsPackaging
+      operationId: LogisticsPackagingPost
       responses:
         201:
           description: Created
@@ -95,11 +105,11 @@ paths:
               $ref: '#/components/headers/returned_id'
           links:
             self:
-              operationId: getLogisticsPackagingByID
+              operationId: LogisticsPackagingIdGet
               parameters:
                 path: $response.headers.Location
             update:
-              operationId: patchLogisticsPackagingByID
+              operationId: LogisticsPackagingIdPatch
               parameters:
                 path: response.headers.Location
             replace:
@@ -115,24 +125,25 @@ paths:
         408:
           description: Request Timeout
         500:
-          $ref: '#/components/responses/500'
+          $ref: '#/components/responses/500_Internal_Server_Error'
     delete:
       tags:
         - 'not-implemented'
+      operationId: LogisticsPackagingDelete
       responses:
         405:
           $ref: '#/components/responses/405_Not_Implemented'
     patch:
       tags:
         - 'not-implemented'
-      operationId: patchLogisticsPackagingByID
+      operationId: LogisticsPackagingPatch
       responses:
         405:
           $ref: '#/components/responses/405_Not_Implemented'
     put:
       tags:
         - 'not-implemented'
-      summary: 'replaces the data of a consignment-item'
+      operationId: LogisticsPackagingPut
       responses:
         405:
           description: Method Not Allowed
@@ -142,13 +153,9 @@ paths:
         - packaging
       summary: 'Mandatory - Gets the details of an identified packaging (identification in path)'
       description: gets the details of an identified logistics packaging
-      operationId: getLogisticsPackagingByID
+      operationId: LogisticsPackagingIdGet
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/id_in_path'
       responses:
         200:
           description: OK
@@ -167,21 +174,84 @@ paths:
         408:
           description: Request Timeout
         500:
-          $ref: '#/components/responses/500'
+          $ref: '#/components/responses/500_Internal_Server_Error'
     post:
       tags:
-        - 'not-implemented'
+        - packaging
+      summary: 'Mandatory - Creates an new packaging object and fills it with data.'
+      description: |
+        Post packaging item including details to the system
+        ---
+        Creates a new logisticsPackaging object in the target system and provides all data.    
+        The API consumer must ensure a globally uniqe Id is used to identify the the packaging. 
+        In the automotive industry the use of a licence plate according to ANSI MH10.8.2 is recommended.
+      operationId: LogisticsPackagingIdPost
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/id_in_path'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/logisticsPackaging'
+            example:
+              LevelCode:
+                content: '4'
+                listAgencyID: '6'
+              TypeCode:
+                - content: VDA6428
+                  listAgencyID: '204'
+              ID:
+                content: ODA00100987654321
+              PerPackageUnitQuantity:
+                - content: 50
+                  unitCode: C62
+                  unitCodeListID: '6411'
+                  unitCodeListAgencyID: '6'
+                  unitCodeListAgencyName: UN/CEFACT
+              IncludedTradeLineItem:
+                - SpecifiedTradeAgreement:
+                    BuyerReference:
+                      content: '241'
+                    ID:
+                      content: RAN123
+                    SellerParty:
+                      ID:
+                        content: '432156789'
+                        schemeAgencyID: '16'
+                    BuyerParty:
+                      ID:
+                        - content: ODA05301
+                          schemeAgencyID: '10'
+                    SupplyInstructionReferencedDocument:
+                      TypeCode:
+                        content: '240'
+                        listAgencyID: '6'
+                      ID:
+                        content: '20230131-055'
+                      FormattedIssueDateTime:
+                        content: '20230131'
+                        format: '102'
+                      SubordinateLineID:
+                        content: '12'
+                  SpecifiedProduct:
+                    - BuyerAssignedID:
+                        content: 'A12-345-6789'
       responses:
-        405:
-          description: Method Not Allowed
+        201:
+          description: Created
+          links:
+            LogisticsPackagingIdGet:
+              operationId: LogisticsPackagingIdGet
+              parameters:
+                path: '''$response.body#/CreatedResponse.ID'''
+        400:
+          $ref: '#/components/responses/400_Bad_Request'
+        401:
+          $ref: '#/components/responses/401_Unauthorised'
         403:
           $ref: '#/components/responses/403_Forbidden'
+        415:
+          $ref: '#/components/responses/415_Unsupported_Media_type'
         500:
           description: Internal Server Error
     put:
@@ -194,13 +264,7 @@ paths:
         Otherwise a POST command without request data shall be used to create an empty object and retrieve the unique ID assigne by the target system. Subsequently the PUT command can be used to add the data to the system.
       operationId: putLogisticsPackagingByID
       parameters:
-        - name: id
-          in: path
-          description: The unique ID of the logistics packaging
-          required: true
-          schema:
-            type: string
-          example: ODA00101987654321
+        - $ref: '#/components/parameters/id_in_path'
       requestBody:
         description: the logistics packaging data structure
         content:
@@ -255,11 +319,11 @@ paths:
           description: 'If PUT has been used with an ID that is known in the application (i.e. the resource exists), the system shall replace this resource with the data of the request body and return 200 - OK'
           links:
             update:
-              operationId: patchLogisticsPackagingByID
+              operationId: LogisticsPackagingIdPatch
               parameters:
                 ident: $response.headers.Location
             self:
-              operationId: getLogisticsPackagingByID
+              operationId: LogisticsPackagingIdGet
               parameters:
                 path: $response.headers.Location
         400:
@@ -281,18 +345,14 @@ paths:
     patch:
       tags:
         - packaging
-      summary: 'Mandatory - Updates selected fields of the logistics packaging data structure'
+      summary: 'Optional - Updates selected fields of the logistics packaging data structure'
       description: |
         Change a logistics packaging partially
         ---
         Changes parts of or adds parts to an existing logistics packaging.
-      operationId: patchConsignmentItemByID
+      operationId: LogisticsPackagingIdPatch
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/id_in_path'
       requestBody:
         content:
           application/json:
@@ -322,20 +382,155 @@ paths:
     delete:
       tags:
         - 'not-implemented'
+      operationId: LogisticsPackagingIdDelete
       parameters:
-        - $ref: id
+        - $ref: '#/components/parameters/id_in_path'
       responses:
         405:
           $ref: '#/components/responses/405_Not_Implemented'
     parameters:
-      - name: id
-        in: path
-        description: Identifier
-        required: true
-        schema:
-          type: string
+      - $ref: '#/components/parameters/id_in_path'
+  /logisticsLabels/{id}:
+    get:
+      tags:
+        - label
+      summary: 'Optional - Gets the content of an identified label or the link, where it can be downloaded.'
+      description: gets the details of an identified logistics packaging
+      operationId: LogisticsLabelIdGet
+      parameters:
+        - $ref: '#/components/parameters/id_in_path'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/logisticsLabel'
+        400:
+          $ref: '#/components/responses/400_Bad_Request'
+        401:
+          $ref: '#/components/responses/401_Unauthorised'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        404:
+          description: Not Found
+        408:
+          description: Request Timeout
+        500:
+          $ref: '#/components/responses/500_Internal_Server_Error'
+    post:
+      tags:
+        - label
+      summary: 'Optional - Creates an new label object in the system and fills it with data.'
+      description: |
+        Post a label object with details to the system
+        ---
+        Creates a new logisticsLabel object in the target system and provides all data.
+      operationId: LogisticsLabelIdPost
+      parameters:
+        - $ref: '#/components/parameters/id_in_path'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/logisticsLabel'
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedResponse'
+          links:
+            logisticsLabelIdGet:
+              operationId: logisticsLabelIdGet
+              parameters:
+                path: '''$response.body#/CreatedResponse.ID'''
+        400:
+          $ref: '#/components/responses/400_Bad_Request'
+        401:
+          $ref: '#/components/responses/401_Unauthorised'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        415:
+          $ref: '#/components/responses/415_Unsupported_Media_type'
+        500:
+          description: Internal Server Error
+    put:
+      tags:
+        - 'not-implemented'
+      operationId: logisticsLabelIdPut
+      parameters:
+        - $ref: '#/components/parameters/id_in_path'
+      responses:
+        405:
+          description: |
+            If PUT has been used with an ID that is not yet stored in the application, the system shall create this resource internally using the provided ID (parameter ident) as key, fill it with the data of the request body and return 201 - created.
+            The service consumer (i.e. provider of the data) MUST make sure that the ident is globally unique and cannot cause key violation in the target system.
+          headers:
+            Location:
+              $ref: '#/components/headers/returned_id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedResponse'
+    patch:
+      tags:
+        - 'not-implemented'
+      operationId: logisticsLabelIdPatch
+      parameters:
+        - $ref: '#/components/parameters/id_in_path'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/logisticsPackaging'
+      responses:
+        405:
+          $ref: '#/components/responses/405_Not_Implemented'
+    delete:
+      tags:
+        - 'not-implemented'
+      operationId: logisticsLabelIdDelete
+      parameters:
+        - $ref: '#/components/parameters/id_in_path'
+      responses:
+        405:
+          $ref: '#/components/responses/405_Not_Implemented'
+    parameters:
+      - $ref: '#/components/parameters/id_in_path'
 components:
   schemas:
+    logisticsLabel:
+      type: object
+      properties:
+        ID:
+# description: Unique ID of the packaging that this label has to be attached to. 
+          $ref: '#/components/schemas/Identifier'
+        URIID:
+          description: If the label has to be downloaded, this URI provides the link.
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier_2'
+        MIMECode:
+          type: array
+          items:
+            $ref: '#/components/schemas/Code'
+        IncludedBinaryObject:
+          type: array
+          items:
+            $ref: '#/components/schemas/BinaryObject'
+        SizeMeasure:
+          description: Can be used to communicate length and width of the label.
+          type: array
+          items:
+            $ref: '#/components/schemas/Measure'
+          maxItems: 2
+        TypeCode:
+          $ref: '#/components/schemas/Code_2'
+      required:
+        - ID
+        - TypeCode
     logisticsPackaging:
       type: object
       properties:
@@ -348,7 +543,7 @@ components:
         SequenceNumeric:
           $ref: '#/components/schemas/Numeric'
         ID:
-          $ref: '#/components/schemas/Identifier'
+          $ref: '#/components/schemas/Identifier_3'
         PerPackageUnitQuantity:
           type: array
           items:
@@ -404,6 +599,42 @@ components:
           items:
             $ref: '#/components/schemas/Identifier_2'
           minItems: 1
+    BinaryObject:
+      type: object
+      properties:
+        content:
+          type: string
+        format:
+          enum:
+            - base64
+          type: string
+      required:
+        - content
+    Code:
+      type: object
+      properties:
+        content:
+          enum:
+            - application/pdf  # pdf
+            - application/postscript  # postscript
+            - image/jpeg  # jpeg
+          type: string
+      required:
+        - content
+    Code_2:
+      type: object
+      properties:
+        content:
+          enum:
+            - 1J  # single label
+            - 5J
+            - 6J
+            - G  # mixed label
+            - M  # master label
+            - S  # single label
+          type: string
+      required:
+        - content
     Date:
       type: object
       properties:
@@ -419,10 +650,31 @@ components:
         Detail:
           $ref: '#/components/schemas/Text_5'
         ErrorCode:
-          $ref: '#/components/schemas/Code'
+          $ref: '#/components/schemas/Code_3'
         ErrorSource:
           $ref: '#/components/schemas/ErrorSource'
     Identifier:
+      description: Unique ID of the packaging that this label has to be attached to.
+      type: object
+      properties:
+        content:
+          type: string
+        schemeAgencyID:
+          enum:
+            - '272'  # Joint Automotive Industry agency
+            - ZZZ  # Mutually defined
+          type: string
+      required:
+        - content
+    Identifier_2:
+      description: If the label has to be downloaded, this URI provides the link.
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+    Identifier_3:
       type: object
       properties:
         content:
@@ -431,10 +683,17 @@ components:
           type: string
       required:
         - content
-    Identifier_2:
+    Measure:
+      description: Can be used to communicate length and width of the label.
       type: object
       properties:
         content:
+          type: number
+        unitCode:
+          maxLength: 3
+          minLength: 1
+          enum:
+            - MMT  # millimetre
           type: string
       required:
         - content
@@ -3153,7 +3412,7 @@ components:
           example: Draft
       required:
         - content
-    Code:
+    Code_3:
       description: Name wrong should be Country. Relationship. Code
       type: object
       properties:
@@ -3974,7 +4233,7 @@ components:
         BuyerReference:
           $ref: '#/components/schemas/Text_6'
         ID:
-          $ref: '#/components/schemas/Identifier_3'
+          $ref: '#/components/schemas/Identifier_4'
         SellerParty:
           $ref: '#/components/schemas/TradeParty'
         BuyerParty:
@@ -3982,7 +4241,7 @@ components:
         SupplyInstructionReferencedDocument:
           $ref: '#/components/schemas/ReferencedDocument'
     Text_5:
-      description: Special requirements / instructions such as cooling, dangerous goods requirements etc.
+      description: E.g. GTL, OTL, VDA, OEM specific
       type: object
       properties:
         content:
@@ -4369,7 +4628,7 @@ components:
       properties:
         BuyerAssignedID:
           $ref: '#/components/schemas/Identifier_2'
-    Identifier_3:
+    Identifier_4:
       type: object
       properties:
         content:
@@ -4813,7 +5072,7 @@ components:
       type: object
       properties:
         ID:
-          $ref: '#/components/schemas/Identifier_4'
+          $ref: '#/components/schemas/Identifier_5'
       required:
         - ID
     TradeParty_2:
@@ -4822,7 +5081,7 @@ components:
         ID:
           type: array
           items:
-            $ref: '#/components/schemas/Identifier_4'
+            $ref: '#/components/schemas/Identifier_5'
           minItems: 1
     DocumentCode:
       type: object
@@ -4851,7 +5110,7 @@ components:
           type: string
       required:
         - content
-    Identifier_4:
+    Identifier_5:
       type: object
       properties:
         content:
@@ -5282,6 +5541,10 @@ components:
       description: 'No content: The server successfully processed the request and is not returning any content'
     400_Bad_Request:
       description: 'Bad request: The server cannot process the request (such as malformed request syntax, size too large, invalid request message framing, or deceptive request routing, invalid values in the request)'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorList'
     401_Unauthorised:
       description: 'Unauthorised: The request could not be authenticated.'
       content:
@@ -5316,7 +5579,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorList'
-    500:
+    500_Internal_Server_Error:
       description: 'Internal Server Error: An internal server error. The response body may contain error messages.'
   parameters:
     id_in_query:
@@ -5342,6 +5605,51 @@ components:
       description: Defines the first record to return of an array. If ommitted the list starts with the first record. (start=1)
       schema:
         type: integer
+  examples:
+    logisticsPackaging:
+      value:
+        LevelCode:
+          content: '4'
+          listAgencyID: '6'
+        TypeCode:
+          - content: VDA6428
+            listAgencyID: '204'
+        ID:
+          content: ODA00100987654321
+        PerPackageUnitQuantity:
+          - content: 50
+            unitCode: C62
+            unitCodeListID: '6411'
+            unitCodeListAgencyID: '6'
+            unitCodeListAgencyName: UN/CEFACT
+        IncludedTradeLineItem:
+          - SpecifiedTradeAgreement:
+              BuyerReference:
+                content: '241'
+              ID:
+                content: RAN123
+              SellerParty:
+                ID:
+                  content: '432156789'
+                  schemeAgencyID: '16'
+              BuyerParty:
+                ID:
+                  - content: ODA05301
+                    schemeAgencyID: '10'
+              SupplyInstructionReferencedDocument:
+                TypeCode:
+                  content: '240'
+                  listAgencyID: '6'
+                ID:
+                  content: '20230131-055'
+                FormattedIssueDateTime:
+                  content: '20230131'
+                  format: '102'
+                SubordinateLineID:
+                  content: '12'
+            SpecifiedProduct:
+              - BuyerAssignedID:
+                  content: 'A12-345-6789'
   requestBodies:
     packaging:
       description: Details of a consignment (shipment)
@@ -5361,16 +5669,17 @@ components:
         type: integer
   links:
     getLogisticsPackageByPathID:
-      operationId: getLogisticsPackagingByID
+      operationId: LogisticsPackagingIdGet
       parameters:
         ident: $request.path.id
       description: uses the ID of the request path to get more information on the packaging object
     getLogisticsPackageByResponseID:
-      operationId: getLogisticsPackagingByID
+      operationId: LogisticsPackagingIdGet
       parameters:
         ident: '$response.body#/id'
       description: uses the ID of the response body to get more information on the consignment object
 tags:
+  - name: label
   - name: packaging
   - name: 'not-implemented'
     description: Will return code 405
